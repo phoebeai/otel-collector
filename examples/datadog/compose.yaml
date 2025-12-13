@@ -1,0 +1,117 @@
+name: pdot-datadog
+
+services:
+  web:
+    build:
+      context: ./sample-app
+    ports:
+      - "5050:5050"
+    environment:
+      FLASK_ENV: development
+      STATSD_HOST: dd-agent
+      DD_TRACE_AGENT_URL: http://dd-agent:8126 # Default APM receiver port
+      DD_SERVICE: demo-web
+      DD_ENV: development
+    volumes:
+      - ./sample-app:/app
+    logging:
+      # DD Agent log collection from containers requires that they use the JSON log file format
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      - dd-agent
+
+  dd-agent:
+    image: "gcr.io/datadoghq/agent:7.72.4"
+    environment:
+      DD_HOSTNAME: # the name for this host, e.g. myname.local. Set in .env.
+      DD_API_KEY: # Set in .env
+      DD_SITE: datadoghq.eu
+      DD_ENV: development
+      DD_TAGS: "project:phoebe-pdot-demo team:devops"
+
+      # ==== Metrics ==========================================================
+      DD_ADDITIONAL_ENDPOINTS: '{"http://pdot:8226": ["fakeApiKey"]}'
+
+      # Make DogStatsD listen to non local traffic, i.e. traffic from other containers
+      DD_DOGSTATSD_NON_LOCAL_TRAFFIC: true
+
+      # ==== Logs =============================================================
+      DD_LOGS_ENABLED: true
+      DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL: true
+      DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS: '[{"api_key": "fakeApiKey", "Host": "pdot", "Port": 8226, "use_ssl": false}]'
+
+      # The Otel datadogreceiver fails the connectivity request but we want to use HTTP anyway
+      DD_LOGS_CONFIG_FORCE_USE_HTTP: true
+
+      # ==== APM / Traces =====================================================
+      DD_APM_ENABLED: true
+      DD_APM_ADDITIONAL_ENDPOINTS: '{"http://pdot:8226": ["fakeApiKey"]}'
+      # Make trace agent listen for traffic from other containers
+      DD_APM_NON_LOCAL_TRAFFIC: true
+
+      # ==== Other misc config ================================================
+      # Disable process agent, datadogreceiver doesn't support it.
+      DD_PROCESS_CONFIG_ENABLED: disabled
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /opt/datadog-agent/run:/opt/datadog-agent/run:rw
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+
+      # Use named volumes to avoid proliferation of anonymous volumes. See
+      #   https://github.com/DataDog/datadog-agent/blob/ecde220aaf32d8a1a7d19a3838ce80850a2b6fcd/Dockerfiles/agent/Dockerfile#L247
+      - datadog_logs:/var/log/datadog
+      - datadog_run_s6:/var/run/s6
+
+    env_file:
+      - .env
+    depends_on:
+      pdot:
+        condition: service_healthy
+
+  pdot:
+    build:
+      context: ../..
+    environment:
+      OTEL_DATADOG_RECEIVER_PORT: # from .env, referenced in otel-config.yaml
+      OTEL_EXPORTER_ENDPOINT: http://hyperdx:4318 # Write to the otel collector baked in to hyperdx-local.
+      OTEL_RESOURCE_ATTRIBUTES: "project=phoebe-pdot-demo,team=devops"
+      PHOEBE_API_KEY: fake_key_for_testing_only
+    depends_on:
+      hyperdx:
+        condition: service_healthy
+    healthcheck:
+      test: "wget -q -O- http://127.0.0.1:13133/"
+      start_period: 10s
+      interval: 2s
+      timeout: 10s
+      retries: 20
+
+  hyperdx:
+    image: hyperdx/hyperdx-local:latest
+    volumes:
+      - hyperdx_data:/data/db
+      - hyperdx_clickhouse_data:/var/lib/clickhouse
+    environment:
+      - USAGE_STATS_ENABLED=false
+      - BETA_CH_OTEL_JSON_SCHEMA_ENABLED=true # https://clickhouse.com/docs/use-cases/observability/clickstack/deployment/hyperdx-only#json-type-support
+    ports:
+      - "8080:8080" # HyperDX UI
+      - "8123:8123" # ClickHouse HTTP
+    healthcheck:
+      test: "wget -q -O- http://127.0.0.1:13133/"
+      start_period: 10s
+      interval: 2s
+      timeout: 10s
+      retries: 20
+
+volumes:
+  hyperdx_data:
+  hyperdx_clickhouse_data:
+  datadog_logs:
+  datadog_run_s6:

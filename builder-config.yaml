@@ -1,0 +1,21 @@
+dist:
+  name: otelcol
+  output_path: /app/dist
+  # Pin the desired core version so OCB enforces consistency
+  otelcol_version: v0.140.0
+
+receivers:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/datadogreceiver v0.140.0
+
+processors:
+  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.140.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor v0.140.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.140.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.140.0
+
+exporters:
+  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.140.0
+  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.140.0
+
+extensions:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.140.0
