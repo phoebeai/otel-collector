@@ -13,4 +13,4 @@
     curl http://localhost:5050
     ```
 
-4. Check your local HyperDX (a local Otel collector and UI), you should see the `quote_app.request` metric being ingested. It's at <http://localhost:8080>.
+4. Check your [local HyperDX](http://localhost:8080) (a local Otel collector and UI - follow the prompts to set up a connection and a metrics source on first use). You should see the `quote_app.request` metric being ingested.
