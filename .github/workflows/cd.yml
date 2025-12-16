@@ -1,4 +1,5 @@
 name: Deploy Phoebe Otel Collector Image
+
 on:
   push:
     branches:
@@ -10,15 +11,29 @@ concurrency:
 env:
   AWS_REGION: "us-east-1" # ECR public is only in us-east-1
   AWS_ROLE: "arn:aws:iam::637423592681:role/GitHub-OIDC-Role-KLyU6ka8s8jJ"
+  # TODO: Change alias to `phoebe` once approved.
+  REGISTRY_ALIAS: x5w6m8m9
+  REPOSITORY: otel-collector
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
+  pull-requests: write
 
 jobs:
-  build_and_push:
-    name: Build and push
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
+  build-and-push:
+    needs: release-please
     runs-on: ubuntu-latest
 
     steps:
@@ -44,17 +59,38 @@ jobs:
       - name: Build and push Otel Collector Image
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          # TODO: Change alias to `phoebe` once approved.
-          REGISTRY_ALIAS: x5w6m8m9
-          REPOSITORY: otel-collector
           IMAGE_TAG: ${{ github.sha }}
+          RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
         run: |
+          TAGS="-t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG"
+          TAGS="$TAGS -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:latest"
+
+          # Add release version tag if release-please created a release
+          if [ -n "$RELEASE_TAG" ]; then
+            TAGS="$TAGS -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$RELEASE_TAG"
+          fi
+
           docker buildx build \
             --platform linux/amd64 \
             --provenance=false \
             --push \
             --cache-to type=gha,mode=max \
             --cache-from type=gha \
-            -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG \
-            -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:latest \
+            $TAGS \
             -f Dockerfile .
+
+      - name: Update release notes with Docker image details
+        if: ${{ needs.release-please.outputs.release_created }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          IMAGE="public.ecr.aws/$REGISTRY_ALIAS/$REPOSITORY:$RELEASE_TAG"
+          CURRENT_NOTES=$(gh release view "$RELEASE_TAG" --json body --jq '.body')
+          gh release edit "$RELEASE_TAG" --notes "${CURRENT_NOTES}
+
+          ## Docker Image
+
+          \`\`\`
+          docker pull $IMAGE
+          \`\`\`"
