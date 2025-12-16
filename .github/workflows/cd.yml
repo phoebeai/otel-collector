@@ -30,6 +30,9 @@ jobs:
       - uses: googleapis/release-please-action@v4
         id: release
         with:
+          # Use a PAT rather than `secrets.GITHUB_TOKEN`, so that the resulting PRs will still run CI checks. See
+          # https://github.com/googleapis/release-please-action?tab=readme-ov-file#other-actions-on-release-please-prs
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           manifest-file: .release-please-manifest.json
           config-file: release-please-config.json
 
