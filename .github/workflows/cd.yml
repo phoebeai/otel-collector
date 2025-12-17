@@ -23,9 +23,6 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - uses: actions/create-github-app-token@v2
         id: github-app-token
@@ -39,7 +36,10 @@ jobs:
           token: ${{ steps.github-app-token.outputs.token }}
           manifest-file: .release-please-manifest.json
           config-file: release-please-config.json
-
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
   build-and-push:
     needs: release-please
     runs-on: ubuntu-latest
@@ -75,13 +75,14 @@ jobs:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
           RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
+          VERSION: ${{ needs.release-please.outputs.version }}
         run: |
           TAGS="-t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG"
           TAGS="$TAGS -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:latest"
 
           # Add release version tag if release-please created a release
           if [ -n "$RELEASE_TAG" ]; then
-            TAGS="$TAGS -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$RELEASE_TAG"
+            TAGS="$TAGS -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$VERSION"
           fi
 
           docker buildx build \
@@ -99,7 +100,7 @@ jobs:
           GH_TOKEN: ${{ steps.github-app-token.outputs.token }}
           RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
         run: |
-          IMAGE="public.ecr.aws/$REGISTRY_ALIAS/$REPOSITORY:$RELEASE_TAG"
+          IMAGE="public.ecr.aws/$REGISTRY_ALIAS/$REPOSITORY:$VERSION"
           CURRENT_NOTES=$(gh release view "$RELEASE_TAG" --json body --jq '.body')
           gh release edit "$RELEASE_TAG" --notes "${CURRENT_NOTES}
 
