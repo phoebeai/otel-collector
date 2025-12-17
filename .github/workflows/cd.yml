@@ -27,9 +27,16 @@ jobs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
+      - uses: actions/create-github-app-token@v2
+        id: github-app-token
+        with:
+          app-id: ${{ vars.PHOEBE_RELEASER_APP_ID }}
+          private-key: ${{ secrets.PHOEBE_RELEASER_PRIVATE_KEY }}
+
       - uses: googleapis/release-please-action@v4
         id: release
         with:
+          token: ${{ steps.github-app-token.token }}
           manifest-file: .release-please-manifest.json
           config-file: release-please-config.json
 
