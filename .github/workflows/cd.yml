@@ -40,6 +40,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: actions/create-github-app-token@v2
+        id: github-app-token
+        with:
+          app-id: ${{ vars.PHOEBE_RELEASER_APP_ID }}
+          private-key: ${{ secrets.PHOEBE_RELEASER_PRIVATE_KEY }}
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
         with:
@@ -83,7 +89,7 @@ jobs:
       - name: Update release notes with Docker image details
         if: ${{ needs.release-please.outputs.release_created }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.github-app-token.token }}
           RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
         run: |
           IMAGE="public.ecr.aws/$REGISTRY_ALIAS/$REPOSITORY:$RELEASE_TAG"
