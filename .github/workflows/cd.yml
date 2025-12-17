@@ -36,7 +36,7 @@ jobs:
       - uses: googleapis/release-please-action@v4
         id: release
         with:
-          token: ${{ steps.github-app-token.token }}
+          token: ${{ steps.github-app-token.outputs.token }}
           manifest-file: .release-please-manifest.json
           config-file: release-please-config.json
 
@@ -96,7 +96,7 @@ jobs:
       - name: Update release notes with Docker image details
         if: ${{ needs.release-please.outputs.release_created }}
         env:
-          GH_TOKEN: ${{ steps.github-app-token.token }}
+          GH_TOKEN: ${{ steps.github-app-token.outputs.token }}
           RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
         run: |
           IMAGE="public.ecr.aws/$REGISTRY_ALIAS/$REPOSITORY:$RELEASE_TAG"
