@@ -7,7 +7,7 @@ WORKDIR /app
 # Install the OpenTelemetry Collector Builder
 RUN --mount=type=cache,target=/root/.cache/go-build \
   --mount=type=cache,target=/go/pkg/mod \
-  go install go.opentelemetry.io/collector/cmd/builder@v0.140.0
+  go install go.opentelemetry.io/collector/cmd/builder@v0.142.0
 
 # Copy your builder config
 COPY builder-config.yaml .
