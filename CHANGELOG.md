@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/phoebeai/otel-collector/compare/v0.1.1...v0.1.2) (2026-01-05)
+
+
+### Bug Fixes
+
+* make VERSION available to update release notes CD step ([#23](https://github.com/phoebeai/otel-collector/issues/23)) ([227a403](https://github.com/phoebeai/otel-collector/commit/227a403dabe79793860dd4745b7ab7c0904b968a))
+
 ## [0.1.1](https://github.com/phoebeai/otel-collector/compare/v0.1.0...v0.1.1) (2026-01-05)
 
 
