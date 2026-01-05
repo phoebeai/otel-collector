@@ -99,6 +99,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.github-app-token.outputs.token }}
           RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
+          VERSION: ${{ needs.release-please.outputs.version }}
         run: |
           IMAGE="public.ecr.aws/$REGISTRY_ALIAS/$REPOSITORY:$VERSION"
           CURRENT_NOTES=$(gh release view "$RELEASE_TAG" --json body --jq '.body')
