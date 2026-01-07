@@ -41,6 +41,13 @@ service:
     logs:
       level: "INFO"
       encoding: "json"
+    metrics:
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: ${env:OTEL_PROMETHEUS_HOST:-127.0.0.1}
+                port: ${env:OTEL_PROMETHEUS_PORT:-8888}
   extensions:
     - health_check
   pipelines:
