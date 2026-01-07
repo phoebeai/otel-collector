@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/phoebeai/otel-collector/compare/v0.1.2...v0.2.0) (2026-01-07)
+
+
+### Features
+
+* make internal metrics host and port configurable ([#27](https://github.com/phoebeai/otel-collector/issues/27)) ([8004bbc](https://github.com/phoebeai/otel-collector/commit/8004bbc845bc0a72fec634bf9fe76d578ab222e4))
+
 ## [0.1.2](https://github.com/phoebeai/otel-collector/compare/v0.1.1...v0.1.2) (2026-01-05)
 
 
