@@ -11,8 +11,7 @@ concurrency:
 env:
   AWS_REGION: "us-east-1" # ECR public is only in us-east-1
   AWS_ROLE: "arn:aws:iam::637423592681:role/GitHub-OIDC-Role-KLyU6ka8s8jJ"
-  # TODO: Change alias to `phoebe` once approved.
-  REGISTRY_ALIAS: x5w6m8m9
+  REGISTRY_ALIAS: phoebe
   REPOSITORY: otel-collector
 
 permissions:
