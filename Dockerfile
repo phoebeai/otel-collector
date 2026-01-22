@@ -28,23 +28,24 @@ FROM alpine:latest
 # Install required system dependencies
 RUN apk add --no-cache ca-certificates
 
+# Create config directory for Prometheus scraper targets file
+RUN mkdir -p /etc/pdot
+VOLUME ["/etc/pdot"]
+
 # Set the working directory
 WORKDIR /otel
 
 # Copy the built binary from the builder stage
 COPY --from=builder /app/dist/otelcol /otel/otelcol
 
-COPY default-otel-config.yaml /otel/config.yaml
+# Copy all configuration files
+COPY configs/ /otel/configs/
 
 # Expose necessary ports
-EXPOSE 4317 4318 8126
+EXPOSE 4317 4318 8126 9090
 
 RUN chmod +x /otel/otelcol
 
-
 # Run the OpenTelemetry Collector
-# Set the entrypoint to just the binary, allowing flexible command arguments
+# No default config - user must specify one via --config flag
 ENTRYPOINT ["/otel/otelcol"]
-
-# Default command if no arguments are provided
-CMD ["--config", "/otel/config.yaml"]
