@@ -1,3 +1,6 @@
+# PDOT Configuration: Full (Datadog + Prometheus Scraper + Remote Write)
+# Use this config when you need multiple receivers (excludes federation)
+
 extensions:
   health_check:
     endpoint: 0.0.0.0:${env:OTEL_HEALTHCHECK_PORT:-13133}
@@ -8,6 +11,20 @@ receivers:
     read_timeout: 60s
     trace_id_cache_size: 100
 
+  prometheusremotewrite:
+    endpoint: 0.0.0.0:${env:OTEL_PROMETHEUS_REMOTE_WRITE_PORT:-9090}
+
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'file_sd'
+          scrape_interval: ${env:OTEL_PROMETHEUS_SCRAPE_INTERVAL:-15s}
+          scrape_timeout: ${env:OTEL_PROMETHEUS_SCRAPE_TIMEOUT:-10s}
+          file_sd_configs:
+            - files:
+                - ${env:OTEL_PROMETHEUS_TARGETS_FILE:-/etc/pdot/targets.yaml}
+              refresh_interval: 30s
+
 processors:
   batch:
     timeout: 30s
@@ -15,8 +32,6 @@ processors:
     send_batch_max_size: 15000
 
   resourcedetection/env:
-    # Allow setting resource attributes with the OTEL_RESOURCE_ATTRIBUTES environment variables. See
-    # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/resourcedetectionprocessor/README.md#environment-variable
     detectors:
       - env
     override: true
@@ -25,8 +40,6 @@ processors:
   transform/datadoglogs:
     error_mode: "ignore"
     log_statements:
-      # Set the Otel timestamp (nanoseconds since epoch) from the Datadog attribute "timestamp" (milliseconds since
-      # epoch)
       - set(log.time_unix_nano, log.attributes["timestamp"]*1000000)
 
 exporters:
@@ -73,6 +86,22 @@ service:
         - datadog
       processors:
         - transform/datadoglogs
+        - batch
+      exporters:
+        - otlphttp/phoebe
+
+    metrics/prometheusremotewrite:
+      receivers:
+        - prometheusremotewrite
+      processors:
+        - batch
+      exporters:
+        - otlphttp/phoebe
+
+    metrics/prometheus:
+      receivers:
+        - prometheus
+      processors:
         - batch
       exporters:
         - otlphttp/phoebe

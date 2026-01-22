@@ -1,0 +1,11 @@
+# Federation targets with per-target match selectors
+# Each target group can have different match[] selectors via __param_match[]
+
+# Federate all sample-app metrics including recording rules
+- targets:
+    - "prometheus:9090"
+  labels:
+    # Match raw metrics from sample-app job AND all recording rules (job:* prefix)
+    "__param_match[]": '{job="sample-app"}'
+    prometheus_server: main
+    env: development

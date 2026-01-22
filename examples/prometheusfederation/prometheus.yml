@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Recording rules for aggregated metrics
+rule_files:
+  - /etc/prometheus/rules.yml
+
+scrape_configs:
+  - job_name: 'sample-app'
+    static_configs:
+      - targets: ['web:8089']

@@ -1,0 +1,30 @@
+groups:
+  - name: sample-app-aggregations
+    interval: 15s
+    rules:
+      # Request rate per second (5m window)
+      - record: job:quote_app_requests:rate5m
+        expr: rate(quote_app_requests_total[5m])
+
+      # Request rate per second by endpoint
+      - record: job:quote_app_requests_by_endpoint:rate5m
+        expr: sum by (endpoint) (rate(quote_app_requests_total[5m]))
+
+      # Average request latency (5m window)
+      - record: job:quote_app_request_latency:avg5m
+        expr: |
+          rate(quote_app_request_latency_seconds_sum[5m])
+          /
+          rate(quote_app_request_latency_seconds_count[5m])
+
+      # 95th percentile latency
+      - record: job:quote_app_request_latency:p95
+        expr: histogram_quantile(0.95, rate(quote_app_request_latency_seconds_bucket[5m]))
+
+      # 99th percentile latency
+      - record: job:quote_app_request_latency:p99
+        expr: histogram_quantile(0.99, rate(quote_app_request_latency_seconds_bucket[5m]))
+
+      # Total quotes available
+      - record: job:quote_app_quotes_available:current
+        expr: quote_app_quotes_available
