@@ -1,0 +1,73 @@
+name: pdot-prometheus
+
+services:
+  web:
+    build:
+      context: ./sample-app
+    ports:
+      - "8089:8089"
+    environment:
+      FLASK_ENV: development
+    volumes:
+      - ./sample-app:/app
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  prometheus:
+    image: prom/prometheus:v3.4.0
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.enable-remote-write-receiver"
+      - "--enable-feature=metadata-wal-records"
+    depends_on:
+      pdot:
+        condition: service_healthy
+
+  pdot:
+    build:
+      context: ../..
+    command: ["--config", "/otel/configs/prometheus-remotewrite.yaml"]
+    ports:
+      - "9090:9090"
+    environment:
+      OTEL_PROMETHEUS_REMOTE_WRITE_PORT: 9090
+      OTEL_EXPORTER_ENDPOINT: http://hyperdx:4318
+      PHOEBE_API_KEY: fake_key_for_testing_only
+    depends_on:
+      hyperdx:
+        condition: service_healthy
+    healthcheck:
+      test: "wget -q -O- http://127.0.0.1:13133/"
+      start_period: 10s
+      interval: 2s
+      timeout: 10s
+      retries: 20
+
+  hyperdx:
+    image: hyperdx/hyperdx-local:latest
+    volumes:
+      - hyperdx_data:/data/db
+      - hyperdx_clickhouse_data:/var/lib/clickhouse
+    environment:
+      - USAGE_STATS_ENABLED=false
+      - BETA_CH_OTEL_JSON_SCHEMA_ENABLED=true
+    ports:
+      - "8080:8080" # HyperDX UI
+      - "8123:8123" # ClickHouse HTTP
+    healthcheck:
+      test: "wget -q -O- http://127.0.0.1:13133/"
+      start_period: 10s
+      interval: 2s
+      timeout: 10s
+      retries: 20
+
+volumes:
+  hyperdx_data:
+  hyperdx_clickhouse_data:

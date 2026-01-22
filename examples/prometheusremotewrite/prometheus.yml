@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+remote_write:
+  - url: "http://pdot:9090/api/v1/write"
+    protobuf_message: "io.prometheus.write.v2.Request"
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "sample-app"
+    static_configs:
+      - targets: ["web:8089"]

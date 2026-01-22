@@ -77,6 +77,7 @@ services:
   pdot:
     build:
       context: ../..
+    command: ["--config", "/otel/configs/datadog.yaml"]
     environment:
       OTEL_DATADOG_RECEIVER_PORT: # from .env, referenced in otel-config.yaml
       OTEL_EXPORTER_ENDPOINT: http://hyperdx:4318 # Write to the otel collector baked in to hyperdx-local.
