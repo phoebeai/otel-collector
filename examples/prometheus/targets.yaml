@@ -1,0 +1,22 @@
+# Prometheus file_sd targets configuration
+# PDOT scrapes metrics from these endpoints
+#
+# Format:
+#   - targets: list of host:port addresses
+#     labels: key-value pairs added to all metrics
+#
+# This file is automatically reloaded every 30 seconds.
+# Add or remove targets without restarting PDOT.
+
+- targets:
+    - "web:8089"
+  labels:
+    app: quote-demo
+    env: development
+
+# Example: Add more targets as needed
+# - targets:
+#     - "another-service:9090"
+#   labels:
+#     app: another-app
+#     team: backend

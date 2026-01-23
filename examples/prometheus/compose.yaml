@@ -1,0 +1,62 @@
+name: pdot-prometheus-scraper
+
+services:
+  web:
+    build:
+      context: ./sample-app
+    ports:
+      - "8089:8089"
+    environment:
+      FLASK_ENV: development
+    volumes:
+      - ./sample-app:/app
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  pdot:
+    build:
+      context: ../..
+    command: ["--config", "/otel/configs/prometheus-scraper.yaml"]
+    volumes:
+      - ./targets.yaml:/etc/pdot/targets.yaml:ro
+    environment:
+      OTEL_PROMETHEUS_SCRAPE_INTERVAL: 15s
+      OTEL_PROMETHEUS_SCRAPE_TIMEOUT: 10s
+      OTEL_EXPORTER_ENDPOINT: http://hyperdx:4318
+      PHOEBE_API_KEY: fake_key_for_testing_only
+    depends_on:
+      web:
+        condition: service_started
+      hyperdx:
+        condition: service_healthy
+    healthcheck:
+      test: "wget -q -O- http://127.0.0.1:13133/"
+      start_period: 10s
+      interval: 2s
+      timeout: 10s
+      retries: 20
+
+  hyperdx:
+    image: hyperdx/hyperdx-local:latest
+    volumes:
+      - hyperdx_data:/data/db
+      - hyperdx_clickhouse_data:/var/lib/clickhouse
+    environment:
+      - USAGE_STATS_ENABLED=false
+      - BETA_CH_OTEL_JSON_SCHEMA_ENABLED=true
+    ports:
+      - "8080:8080" # HyperDX UI
+      - "8123:8123" # ClickHouse HTTP
+    healthcheck:
+      test: "wget -q -O- http://127.0.0.1:13133/"
+      start_period: 10s
+      interval: 2s
+      timeout: 10s
+      retries: 20
+
+volumes:
+  hyperdx_data:
+  hyperdx_clickhouse_data:
