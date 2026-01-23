@@ -2,20 +2,6 @@
 
 This example demonstrates PDOT federating metrics from a Prometheus server, including both raw metrics and recording rules (pre-aggregated metrics).
 
-## How it works
-
-1. Sample Flask app exposes `/metrics` endpoint with Prometheus metrics
-2. Prometheus scrapes the sample app and evaluates recording rules for aggregations
-3. PDOT federates specific metrics from Prometheus via `/federate` endpoint
-4. Metrics flow to HyperDX for visualization
-
-```
-┌─────────────┐     scrape      ┌─────────────┐    federate    ┌─────────────┐     export     ┌─────────────┐
-│  Flask App  │ ◄────────────── │ Prometheus  │ ◄───────────── │    PDOT     │ ──────────────►│  HyperDX    │
-│  /metrics   │                 │  + rules    │                │ federation  │                │     UI      │
-└─────────────┘                 └─────────────┘                └─────────────┘                └─────────────┘
-```
-
 ## Running the example
 
 1. Start the stack:
@@ -61,6 +47,10 @@ Recording rules are federated using the `{__name__=~"job:.*"}` match selector.
 
 ## Configuration
 
+PDOT supports two methods for configuring federation targets (can use one or both):
+
+### Option 1: File-based discovery
+
 The federation targets file (`federation.yaml`) defines which Prometheus servers to federate from and which metrics to collect:
 
 ```yaml
@@ -71,6 +61,29 @@ The federation targets file (`federation.yaml`) defines which Prometheus servers
     __param_match[]: '{job="sample-app"},{__name__=~"job:.*"}'
     prometheus_server: main
     env: development
+```
+
+### Option 2: Environment variable
+
+Pass targets directly via `OTEL_PROMETHEUS_FEDERATION_STATIC_CONFIGS` (no file mounting needed):
+
+```bash
+docker run --rm \
+  -e 'OTEL_PROMETHEUS_FEDERATION_STATIC_CONFIGS=[{"targets":["prometheus:9090"],"labels":{"__param_match[]":"{job=\"app\"}"}}]' \
+  -e PHOEBE_API_KEY=your_key \
+  pdot:latest --config /otel/configs/prometheus-federation.yaml
+```
+
+### Hybrid approach
+
+Both methods can be used together - targets are merged:
+
+```bash
+docker run --rm \
+  -v ./federation.yaml:/etc/pdot/federation.yaml:ro \
+  -e 'OTEL_PROMETHEUS_FEDERATION_STATIC_CONFIGS=[{"targets":["extra-prom:9090"]}]' \
+  -e PHOEBE_API_KEY=your_key \
+  pdot:latest --config /otel/configs/prometheus-federation.yaml
 ```
 
 ### Match Selector Examples

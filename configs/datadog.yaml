@@ -18,6 +18,8 @@ processors:
     send_batch_max_size: 15000
 
   resourcedetection/env:
+    # Allow setting resource attributes with the OTEL_RESOURCE_ATTRIBUTES environment variables. SeeExpand commentComment on line L18ResolvedCode has comments. Press enter to view.
+    # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/resourcedetectionprocessor/README.md#environment-variable
     detectors:
       - env
     override: true
@@ -26,6 +28,8 @@ processors:
   transform/datadoglogs:
     error_mode: "ignore"
     log_statements:
+      # Set the Otel timestamp (nanoseconds since epoch) from the Datadog attribute "timestamp" (milliseconds sinceExpand commentComment on line L28ResolvedCode has comments. Press enter to view.
+      # epoch)
       - set(log.time_unix_nano, log.attributes["timestamp"]*1000000)
 
 exporters:

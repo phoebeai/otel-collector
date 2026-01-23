@@ -2,13 +2,41 @@
 
 PDOT can actively scrape Prometheus metrics endpoints using the `prometheusreceiver`.
 
+**Config file:** `/otel/configs/prometheus-scraper.yaml`
+
 ## Configuration
 
-### Targets File
+PDOT supports two methods for configuring scrape targets. You can use either method, or both together (targets are merged).
 
-PDOT uses file-based service discovery. Create a targets file at `/etc/pdot/targets.yaml` (or configure a custom path):
+### Option 1: Environment Variable
 
-**Config file:** `/otel/configs/prometheus-scraper.yaml`
+Pass targets directly via `OTEL_PROMETHEUS_STATIC_CONFIGS` - no file mounting needed:
+
+```bash
+docker run --rm \
+  -e 'OTEL_PROMETHEUS_STATIC_CONFIGS=[{"targets":["app:8080"],"labels":{"env":"prod"}}]' \
+  -e PHOEBE_API_KEY=${PHOEBE_API_KEY} \
+  pdot --config /otel/configs/prometheus-scraper.yaml
+```
+
+The value is a JSON array of target groups:
+
+```json
+[
+  {
+    "targets": ["app1:8080", "app2:8080"],
+    "labels": {"env": "production", "team": "backend"}
+  },
+  {
+    "targets": ["node-exporter:9100"],
+    "labels": {"job": "infrastructure"}
+  }
+]
+```
+
+### Option 2: Targets File
+
+Use file-based service discovery by mounting a targets file to `/etc/pdot/targets.yaml`:
 
 ```yaml
 - targets:
@@ -24,24 +52,29 @@ PDOT uses file-based service discovery. Create a targets file at `/etc/pdot/targ
     job: infrastructure
 ```
 
-Each target group can have:
+The targets file is automatically reloaded every 30 seconds. You can add or remove targets without restarting PDOT.
 
-- `targets`: List of `host:port` addresses to scrape
-- `labels`: Key-value pairs added to all metrics from these targets
+### Hybrid Approach
+
+Both methods can be used together - targets from both sources are merged:
+
+```bash
+docker run --rm \
+  -v ./targets.yaml:/etc/pdot/targets.yaml:ro \
+  -e 'OTEL_PROMETHEUS_STATIC_CONFIGS=[{"targets":["static-host:9090"]}]' \
+  -e PHOEBE_API_KEY=${PHOEBE_API_KEY} \
+  pdot --config /otel/configs/prometheus-scraper.yaml
+```
 
 ### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `OTEL_PROMETHEUS_STATIC_CONFIGS` | `[]` | JSON array of static target configs |
 | `OTEL_PROMETHEUS_TARGETS_FILE` | `/etc/pdot/targets.yaml` | Path to targets file |
 | `OTEL_PROMETHEUS_SCRAPE_INTERVAL` | `15s` | How often to scrape targets |
 | `OTEL_PROMETHEUS_SCRAPE_TIMEOUT` | `10s` | Timeout for each scrape request |
-
-### Hot Reload
-
-The targets file is automatically reloaded every 30 seconds. You can add or remove targets without restarting PDOT.
-
-**Note:** If the targets file is missing or empty, PDOT will start but will not scrape any metrics.
+| `OTEL_PROMETHEUS_JOB_NAME` | `default` | Job name for all scraped metrics |
 
 ## Known Limitations
 
@@ -62,7 +95,18 @@ Classic histograms and summaries are not supported due to atomicity concerns.
 The initial implementation supports HTTP only. HTTPS endpoints cannot be scraped.
 Basic auth and bearer token authentication are not supported in this version.
 
-## Docker Run Example
+## Docker Run Examples
+
+### Using environment variable (no file mount)
+
+```bash
+docker run --rm \
+  -e 'OTEL_PROMETHEUS_STATIC_CONFIGS=[{"targets":["app:8080"],"labels":{"env":"prod"}}]' \
+  -e PHOEBE_API_KEY=${PHOEBE_API_KEY} \
+  pdot --config /otel/configs/prometheus-scraper.yaml
+```
+
+### Using targets file
 
 ```bash
 docker run --rm \
@@ -79,8 +123,11 @@ services:
     image: your-pdot-image
     command: ["--config", "/otel/configs/prometheus-scraper.yaml"]
     volumes:
-      - ./targets.yaml:/etc/pdot/targets.yaml:ro
+      - ./targets.yaml:/etc/pdot/targets.yaml:ro  # Optional, not needed if using env var
     environment:
+      # Option 1: Use env var (no file mount needed)
+      # OTEL_PROMETHEUS_STATIC_CONFIGS: '[{"targets":["app:8080"]}]'
+      # Option 2: Use mounted targets.yaml (shown in volumes above)
       OTEL_PROMETHEUS_SCRAPE_INTERVAL: 15s
       PHOEBE_API_KEY: ${PHOEBE_API_KEY}
 ```

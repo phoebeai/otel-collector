@@ -2,19 +2,6 @@
 
 This example demonstrates PDOT actively scraping Prometheus metrics from a sample application, without requiring a separate Prometheus server.
 
-## How it works
-
-1. Sample Flask app exposes `/metrics` endpoint with Prometheus metrics
-2. PDOT scrapes the app using file-based service discovery
-3. Metrics flow to HyperDX for visualization
-
-```
-┌─────────────┐     scrape      ┌─────────────┐     export     ┌─────────────┐
-│  Flask App  │ ◄────────────── │    PDOT     │ ──────────────►│  HyperDX    │
-│  /metrics   │                 │  scraper    │                │     UI      │
-└─────────────┘                 └─────────────┘                └─────────────┘
-```
-
 ## Running the example
 
 1. Start the stack:
@@ -43,6 +30,10 @@ This example demonstrates PDOT actively scraping Prometheus metrics from a sampl
 
 ## Configuration
 
+PDOT supports two methods for configuring scrape targets (can use one or both):
+
+### Option 1: File-based discovery
+
 The targets file (`targets.yaml`) defines which endpoints PDOT scrapes:
 
 ```yaml
@@ -54,6 +45,29 @@ The targets file (`targets.yaml`) defines which endpoints PDOT scrapes:
 ```
 
 To add more targets, edit `targets.yaml`. PDOT automatically detects changes within 30 seconds.
+
+### Option 2: Environment variable
+
+Pass targets directly via `OTEL_PROMETHEUS_STATIC_CONFIGS` (no file mounting needed):
+
+```bash
+docker run --rm \
+  -e 'OTEL_PROMETHEUS_STATIC_CONFIGS=[{"targets":["app:8080"],"labels":{"env":"prod"}}]' \
+  -e PHOEBE_API_KEY=your_key \
+  pdot:latest --config /otel/configs/prometheus-scraper.yaml
+```
+
+### Hybrid approach
+
+Both methods can be used together - targets are merged:
+
+```bash
+docker run --rm \
+  -v ./targets.yaml:/etc/pdot/targets.yaml:ro \
+  -e 'OTEL_PROMETHEUS_STATIC_CONFIGS=[{"targets":["static-host:9090"]}]' \
+  -e PHOEBE_API_KEY=your_key \
+  pdot:latest --config /otel/configs/prometheus-scraper.yaml
+```
 
 ## Differences from Remote Write example
 
