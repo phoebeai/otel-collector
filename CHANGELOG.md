@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/phoebeai/otel-collector/compare/v0.2.0...v0.3.0) (2026-01-23)
+
+
+### Features
+
+* prometheus receivers ([#30](https://github.com/phoebeai/otel-collector/issues/30)) ([5a7a090](https://github.com/phoebeai/otel-collector/commit/5a7a09054d76e0eb6b12924ef63d4b32f141f3a8))
+
 ## [0.2.0](https://github.com/phoebeai/otel-collector/compare/v0.1.2...v0.2.0) (2026-01-07)
 
 
